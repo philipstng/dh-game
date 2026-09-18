@@ -2,933 +2,924 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NYC Ant Defenders</title>
-    <!-- Tailwind CSS for UI layout -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&display=swap');
-
-        * {
-            box-sizing: border-box;
+        body {
+            font-family: 'Inter', sans-serif;
             user-select: none;
             -webkit-user-select: none;
             touch-action: manipulation;
         }
-
-        body {
-            font-family: 'Outfit', sans-serif;
-            background-color: #0f172a;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            overflow: hidden;
-            color: #ffffff;
-        }
-
-        /* Phone Screen Frame (Aspect ratio roughly 2:5.5 / modern vertical smartphone) */
-        #phone-container {
-            width: 100%;
-            max-width: 420px;
-            height: 100vh;
-            max-height: 900px;
+        .canvas-container {
             position: relative;
-            background: #1e293b;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
+            aspect-ratio: 9 / 19.5; /* Phone aspect ratio standard frame */
+            max-height: 92vh;
+            max-width: 100vw;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
         }
-
-        @media (min-width: 640px) {
-            #phone-container {
-                height: 92vh;
-                border-radius: 36px;
-                border: 10px solid #334155;
-            }
-        }
-
-        /* Screen Canvas overlay positioning */
         canvas {
+            display: block;
             width: 100%;
             height: 100%;
-            display: block;
-        }
-
-        /* Custom Button Hover Effects */
-        .btn-action {
-            transition: all 0.15s ease-in-out;
-        }
-        .btn-action:active {
-            transform: scale(0.95);
-        }
-
-        /* Custom animation for neon glow */
-        .neon-text {
-            text-shadow: 0 0 10px rgba(244, 63, 94, 0.7), 0 0 20px rgba(244, 63, 94, 0.4);
         }
     </style>
 </head>
-<body>
+<body class="bg-slate-950 text-white min-h-screen flex flex-col items-center justify-center p-2 sm:p-4 overflow-hidden">
 
-    <!-- Phone Wrapper -->
-    <div id="phone-container">
+    <div id="gameWrapper" class="canvas-container relative rounded-3xl overflow-hidden border-4 border-slate-700 bg-slate-900 flex items-center justify-center">
+        <!-- Main Game Canvas -->
+        <canvas id="gameCanvas" width="450" height="975" class="w-full h-full object-cover"></canvas>
 
-        <!-- CANVAS GAME LAYER -->
-        <canvas id="gameCanvas"></canvas>
-
-        <!-- UI OVERLAY: CHARACTER SELECTION SCREEN -->
-        <div id="charSelectScreen" class="absolute inset-0 bg-slate-900/95 backdrop-blur-md flex flex-col justify-between p-6 z-20">
-            <div class="text-center pt-4">
-                <h1 class="text-3xl font-black tracking-wider text-amber-400 uppercase drop-shadow-md">NYC Ant Defenders</h1>
-                <p class="text-xs text-slate-300 mt-1 uppercase tracking-widest">Select Your Hero</p>
-            </div>
-
-            <!-- Character Cards Container -->
-            <div class="space-y-3 my-auto">
-                <!-- Rumi -->
-                <div onclick="selectCharacter('rumi')" class="char-card bg-slate-800/90 border-2 border-purple-500 hover:border-purple-300 rounded-2xl p-3 flex items-center gap-4 cursor-pointer transition-all hover:scale-[1.02]">
-                    <div class="w-16 h-16 rounded-xl bg-purple-950 flex items-center justify-center border border-purple-400/30 overflow-hidden shrink-0">
-                        <!-- SVG Preview Rumi -->
-                        <svg viewBox="0 0 60 60" class="w-14 h-14">
-                            <circle cx="30" cy="32" r="14" fill="#fbcfe8"/>
-                            <path d="M 30 18 C 15 5 10 25 10 30 C 10 35 15 25 30 20" fill="#a855f7"/>
-                            <path d="M 30 20 Q 48 5 50 25" stroke="#a855f7" stroke-width="8" stroke-linecap="round" fill="none"/>
-                            <path d="M 18 42 L 42 42 L 40 58 L 20 58 Z" fill="#eab308"/>
-                            <rect x="25" y="42" width="10" height="12" fill="#a855f7"/>
-                        </svg>
-                    </div>
-                    <div class="flex-1">
-                        <div class="flex justify-between items-center">
-                            <h2 class="text-lg font-bold text-purple-300">RUMI</h2>
-                            <span class="text-[10px] bg-purple-900/80 text-purple-200 px-2 py-0.5 rounded-full uppercase tracking-wider font-semibold">Sword Slash</span>
+        <!-- UI Overlay Layer -->
+        <div id="uiOverlay" class="absolute inset-0 flex flex-col justify-between p-4 pointer-events-none">
+            
+            <!-- Top HUD -->
+            <div class="flex justify-between items-center w-full bg-slate-900/80 backdrop-blur-md p-3 rounded-2xl border border-slate-700/50 shadow-lg pointer-events-auto">
+                <div class="flex items-center gap-2">
+                    <span id="hudCharAvatar" class="w-10 h-10 rounded-full border-2 border-yellow-400 bg-slate-800 flex items-center justify-center overflow-hidden">
+                        <!-- Dynamic SVG portrait icon inserted here -->
+                    </span>
+                    <div>
+                        <div id="hudCharName" class="text-xs font-bold text-yellow-400 tracking-wider uppercase">RUMI</div>
+                        <div class="flex items-center gap-1">
+                            <span class="text-xs text-red-400 font-extrabold">HP:</span>
+                            <div class="w-20 bg-slate-700 h-2.5 rounded-full overflow-hidden">
+                                <div id="hpBar" class="bg-gradient-to-r from-red-500 to-emerald-400 h-full w-full transition-all duration-300"></div>
+                            </div>
                         </div>
-                        <p class="text-xs text-slate-400 mt-0.5">High purple braided ponytail & yellow top. Fast close-range blade arc.</p>
                     </div>
                 </div>
 
-                <!-- Mira -->
-                <div onclick="selectCharacter('mira')" class="char-card bg-slate-800/90 border-2 border-pink-500 hover:border-pink-300 rounded-2xl p-3 flex items-center gap-4 cursor-pointer transition-all hover:scale-[1.02]">
-                    <div class="w-16 h-16 rounded-xl bg-pink-950 flex items-center justify-center border border-pink-400/30 overflow-hidden shrink-0">
-                        <!-- SVG Preview Mira -->
-                        <svg viewBox="0 0 60 60" class="w-14 h-14">
-                            <circle cx="30" cy="32" r="14" fill="#fed7aa"/>
-                            <!-- Pigtails -->
-                            <path d="M 20 28 Q 2 20 8 48" stroke="#ec4899" stroke-width="7" stroke-linecap="round" fill="none"/>
-                            <path d="M 40 28 Q 58 20 52 48" stroke="#ec4899" stroke-width="7" stroke-linecap="round" fill="none"/>
-                            <!-- Blue Ribbons -->
-                            <circle cx="20" cy="28" r="3" fill="#38bdf8"/>
-                            <circle cx="40" cy="28" r="3" fill="#38bdf8"/>
-                            <path d="M 18 42 L 42 42 L 38 58 L 22 58 Z" fill="#c084fc"/>
-                        </svg>
-                    </div>
-                    <div class="flex-1">
-                        <div class="flex justify-between items-center">
-                            <h2 class="text-lg font-bold text-pink-300">MIRA</h2>
-                            <span class="text-[10px] bg-pink-900/80 text-pink-200 px-2 py-0.5 rounded-full uppercase tracking-wider font-semibold">Spear Thrust</span>
+                <div class="text-right">
+                    <div class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Defeated</div>
+                    <div id="scoreText" class="text-2xl font-black text-white tracking-tight">0</div>
+                </div>
+            </div>
+
+            <!-- Start / Selection Screen Overlay -->
+            <div id="selectScreen" class="absolute inset-0 bg-slate-950/90 backdrop-blur-lg flex flex-col items-center justify-between p-6 pointer-events-auto z-20">
+                <div class="text-center mt-4">
+                    <h1 class="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 tracking-wider">NYC ANT DEFENDERS</h1>
+                    <p class="text-xs text-slate-400 mt-1 font-medium">Select your hero to protect New York!</p>
+                </div>
+
+                <!-- Character Selection Cards -->
+                <div class="grid grid-cols-1 gap-3 w-full max-w-xs my-auto">
+                    <!-- RUMI CARD -->
+                    <button onclick="selectHero('rumi')" id="btn-rumi" class="hero-btn group relative flex items-center p-3 rounded-2xl border-2 border-slate-700 bg-slate-800/80 hover:border-yellow-400 hover:bg-slate-800 transition-all text-left">
+                        <div class="w-16 h-16 rounded-xl bg-purple-950 border border-purple-500/30 overflow-hidden flex-shrink-0 flex items-center justify-center shadow-md">
+                            <svg viewBox="0 0 100 100" class="w-full h-full">
+                                <circle cx="50" cy="50" r="45" fill="#2e1065"/>
+                                <!-- Rumi hairstyle preview -->
+                                <path d="M 30,55 Q 15,25 40,15 Q 65,10 75,35 Q 85,60 50,85 Z" fill="#9333ea" />
+                                <circle cx="35" cy="25" r="14" fill="#a855f7" />
+                                <circle cx="48" cy="18" r="16" fill="#c084fc" />
+                                <path d="M 40,32 Q 50,28 60,32 Q 55,60 45,60 Z" fill="#fde047" /> <!-- Yellow jacket -->
+                                <circle cx="50" cy="42" r="10" fill="#fca5a5"/> <!-- Face -->
+                            </svg>
                         </div>
-                        <p class="text-xs text-slate-400 mt-0.5">Magenta pigtails & ribbons. Long-reach spear thrust attack.</p>
-                    </div>
-                </div>
-
-                <!-- Fona -->
-                <div onclick="selectCharacter('fona')" class="char-card bg-slate-800/90 border-2 border-teal-500 hover:border-teal-300 rounded-2xl p-3 flex items-center gap-4 cursor-pointer transition-all hover:scale-[1.02]">
-                    <div class="w-16 h-16 rounded-xl bg-teal-950 flex items-center justify-center border border-teal-400/30 overflow-hidden shrink-0">
-                        <!-- SVG Preview Fona -->
-                        <svg viewBox="0 0 60 60" class="w-14 h-14">
-                            <circle cx="30" cy="32" r="14" fill="#fde047"/>
-                            <!-- Short Hair & Bun -->
-                            <path d="M 16 32 C 16 20 44 20 44 32 C 44 25 36 18 30 18 C 22 18 16 24 16 32 Z" fill="#334155"/>
-                            <circle cx="38" cy="18" r="5" fill="#334155"/>
-                            <path d="M 18 42 L 42 42 L 40 54 L 20 54 Z" fill="#14b8a6"/>
-                        </svg>
-                    </div>
-                    <div class="flex-1">
-                        <div class="flex justify-between items-center">
-                            <h2 class="text-lg font-bold text-teal-300">FONA</h2>
-                            <span class="text-[10px] bg-teal-900/80 text-teal-200 px-2 py-0.5 rounded-full uppercase tracking-wider font-semibold">Katana Throw</span>
+                        <div class="ml-3">
+                            <div class="text-base font-black text-yellow-400 group-hover:text-yellow-300">RUMI</div>
+                            <div class="text-[11px] text-slate-300 font-medium">Katana Slash • High Speed</div>
+                            <div class="text-[10px] text-purple-400 italic">Yellow Jacket & Braided Ponytail</div>
                         </div>
-                        <p class="text-xs text-slate-400 mt-0.5">Teal crop top & dark hair bun. Throws unlimited flying katanas at street level.</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Start Instructions -->
-            <div class="text-center pb-4">
-                <p class="text-xs text-slate-400">Tap a hero to defend New York City street level!</p>
-            </div>
-        </div>
-
-        <!-- HUD LAYER (In-Game) -->
-        <div id="hudLayer" class="absolute top-0 left-0 right-0 p-4 flex justify-between items-start pointer-events-none z-10 hidden">
-            <div class="bg-slate-900/80 border border-slate-700/60 rounded-xl px-4 py-2 backdrop-blur-sm">
-                <span class="text-xs text-slate-400 block font-semibold uppercase tracking-wider">Defeated</span>
-                <span id="scoreText" class="text-3xl font-black text-amber-400 leading-none">0</span>
-            </div>
-            <div class="bg-slate-900/80 border border-slate-700/60 rounded-xl px-3 py-2 backdrop-blur-sm flex items-center gap-2">
-                <span class="text-xs text-slate-400 font-semibold uppercase">Lives:</span>
-                <div id="livesContainer" class="flex gap-1">
-                    <!-- Lives icons inserted dynamically -->
-                </div>
-            </div>
-        </div>
-
-        <!-- GAME OVER OVERLAY -->
-        <div id="gameOverScreen" class="absolute inset-0 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center p-6 z-30 hidden">
-            <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 w-full max-w-xs text-center shadow-2xl">
-                <h2 class="text-3xl font-black text-rose-500 tracking-wider mb-1 uppercase neon-text">Game Over</h2>
-                <p class="text-xs text-slate-400 mb-6">The giant NYC ants overran the sidewalk!</p>
-
-                <div class="bg-slate-800/60 border border-slate-700/50 rounded-2xl p-4 mb-6">
-                    <span class="text-xs uppercase text-slate-400 font-semibold tracking-wider">Final Ants Defeated</span>
-                    <div id="finalScoreText" class="text-5xl font-black text-amber-400 mt-1">0</div>
-                </div>
-
-                <div class="flex flex-col gap-3">
-                    <!-- Action Buttons -->
-                    <button onclick="restartGame()" class="btn-action w-full py-3.5 px-4 bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 text-slate-950 font-extrabold rounded-xl shadow-lg shadow-emerald-950/50 uppercase tracking-wider text-sm">
-                        Play Again
                     </button>
-                    <!-- BLUE BUTTON REQUESTED BY USER -->
-                    <button onclick="returnToCharSelect()" class="btn-action w-full py-3.5 px-4 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-extrabold rounded-xl shadow-lg shadow-blue-950/50 uppercase tracking-wider text-sm transition-colors border border-blue-400/30">
-                        Change Character
+
+                    <!-- MIRA CARD -->
+                    <button onclick="selectHero('mira')" id="btn-mira" class="hero-btn group relative flex items-center p-3 rounded-2xl border-2 border-slate-700 bg-slate-800/80 hover:border-red-400 hover:bg-slate-800 transition-all text-left">
+                        <div class="w-16 h-16 rounded-xl bg-red-950 border border-red-500/30 overflow-hidden flex-shrink-0 flex items-center justify-center shadow-md">
+                            <svg viewBox="0 0 100 100" class="w-full h-full">
+                                <circle cx="50" cy="50" r="45" fill="#450a0a"/>
+                                <path d="M 20,20 Q 50,5 80,20 L 85,85 L 15,85 Z" fill="#dc2626"/> <!-- Long Red Hair -->
+                                <circle cx="50" cy="42" r="10" fill="#fca5a5"/> <!-- Face -->
+                                <path d="M 30,58 Q 50,50 70,58 L 75,90 L 25,90 Z" fill="#c084fc"/> <!-- Sweater -->
+                                <!-- Ribbon -->
+                                <circle cx="28" cy="22" r="4" fill="#60a5fa"/>
+                                <circle cx="72" cy="22" r="4" fill="#60a5fa"/>
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <div class="text-base font-black text-red-400 group-hover:text-red-300">MIRA</div>
+                            <div class="text-[11px] text-slate-300 font-medium">Spear Thrust • Long Reach</div>
+                            <div class="text-[10px] text-pink-400 italic">Twin Pigtails & Bear Sweater</div>
+                        </div>
+                    </button>
+
+                    <!-- FONA CARD -->
+                    <button onclick="selectHero('fona')" id="btn-fona" class="hero-btn group relative flex items-center p-3 rounded-2xl border-2 border-slate-700 bg-slate-800/80 hover:border-cyan-400 hover:bg-slate-800 transition-all text-left">
+                        <div class="w-16 h-16 rounded-xl bg-teal-950 border border-teal-500/30 overflow-hidden flex-shrink-0 flex items-center justify-center shadow-md">
+                            <svg viewBox="0 0 100 100" class="w-full h-full">
+                                <circle cx="50" cy="50" r="45" fill="#042f2e"/>
+                                <circle cx="50" cy="40" r="18" fill="#1e1b4b"/> <!-- Dark Hair -->
+                                <circle cx="50" cy="42" r="10" fill="#fca5a5"/> <!-- Face -->
+                                <path d="M 35,55 Q 50,48 65,55 L 70,90 L 30,90 Z" fill="#0d9488"/> <!-- Teal Top -->
+                                <!-- Crystal Fan -->
+                                <path d="M 65,30 L 80,15 L 75,35 Z" fill="#c084fc"/>
+                                <path d="M 70,35 L 90,25 L 80,45 Z" fill="#60a5fa"/>
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <div class="text-base font-black text-cyan-400 group-hover:text-cyan-300">FONA</div>
+                            <div class="text-[11px] text-slate-300 font-medium">Crystal Blades • Ranged Attack</div>
+                            <div class="text-[10px] text-teal-400 italic">Dark Bun & Teal Crop Top</div>
+                        </div>
                     </button>
                 </div>
+
+                <button id="startBtn" onclick="startGame()" class="w-full max-w-xs py-4 bg-gradient-to-r from-yellow-400 via-amber-500 to-orange-500 text-slate-950 font-black text-lg rounded-2xl shadow-xl hover:brightness-110 active:scale-95 transition-all uppercase tracking-wider">
+                    START DEFENDING
+                </button>
+            </div>
+
+            <!-- Game Over Screen Overlay -->
+            <div id="gameOverScreen" class="hidden absolute inset-0 bg-slate-950/95 backdrop-blur-md flex-col items-center justify-center p-6 text-center pointer-events-auto z-30">
+                <h2 class="text-4xl font-black text-red-500 mb-2 tracking-tight">CITY OVERRUN!</h2>
+                <p class="text-slate-300 text-sm mb-6">The giant ants overran the crosswalk!</p>
+                
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 w-full max-w-xs mb-6 shadow-inner">
+                    <div class="text-slate-400 text-xs uppercase tracking-widest font-bold">Total Ants Defeated</div>
+                    <div id="finalScore" class="text-4xl font-black text-yellow-400 my-1">0</div>
+                </div>
+
+                <div class="flex flex-col gap-3 w-full max-w-xs">
+                    <button onclick="restartGame()" class="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold text-base rounded-xl shadow-lg hover:brightness-110 active:scale-95 transition-all uppercase tracking-wider">
+                        PLAY AGAIN
+                    </button>
+                    <!-- Requested Blue 'Change Character' Button -->
+                    <button onclick="showCharSelect()" class="w-full py-3.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-base rounded-xl shadow-lg active:scale-95 transition-all uppercase tracking-wider">
+                        CHANGE CHARACTER
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tap/Click Attack Prompt at Bottom -->
+            <div id="tapInstruction" class="text-center pb-2 opacity-80 pointer-events-none transition-opacity duration-300">
+                <span class="bg-black/60 backdrop-blur-md text-white text-xs px-4 py-2 rounded-full border border-white/20 font-bold uppercase tracking-wider shadow-lg">
+                    TAP SCREEN TO ATTACK ANTS!
+                </span>
             </div>
         </div>
-
     </div>
 
-    <!-- GAME LOGIC SCRIPT -->
     <script>
-        // Audio Synthesizer for Web Audio Sound Effects
-        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        // Game Engine State
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        let selectedCharacter = 'rumi'; // Default character
+        let isPlaying = false;
+        let score = 0;
+        let playerHp = 100;
+        let animationFrameId = null;
+        let lastAntSpawnTime = 0;
+        let antSpawnInterval = 1800; // ms
+        let gameTime = 0;
+
+        // Entities
+        let player = null;
+        let ants = [];
+        let projectiles = [];
+        let particles = [];
+
+        // Audio Context (Web Audio API)
         let audioCtx = null;
 
         function initAudio() {
             if (!audioCtx) {
-                audioCtx = new AudioCtx();
-            }
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             }
         }
 
-        // Web Audio Sound Generators
-        function playSfx(type) {
+        // Sound Synthesis helper
+        function playSound(type) {
             if (!audioCtx) return;
-            const now = audioCtx.currentTime;
-
-            if (type === 'slash') {
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(400, now);
-                osc.frequency.exponentialRampToValueAtTime(80, now + 0.12);
-                gain.gain.setValueAtTime(0.3, now);
-                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.start(now);
-                osc.stop(now + 0.12);
-            } else if (type === 'thrust') {
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(600, now);
-                osc.frequency.exponentialRampToValueAtTime(150, now + 0.08);
-                gain.gain.setValueAtTime(0.4, now);
-                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.start(now);
-                osc.stop(now + 0.08);
-            } else if (type === 'throw') {
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(300, now);
-                osc.frequency.exponentialRampToValueAtTime(800, now + 0.15);
-                gain.gain.setValueAtTime(0.2, now);
-                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.start(now);
-                osc.stop(now + 0.15);
-            } else if (type === 'hit') {
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.type = 'square';
-                osc.frequency.setValueAtTime(120, now);
-                osc.frequency.exponentialRampToValueAtTime(30, now + 0.15);
-                gain.gain.setValueAtTime(0.4, now);
-                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.start(now);
-                osc.stop(now + 0.15);
-            } else if (type === 'hurt') {
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(180, now);
-                osc.frequency.linearRampToValueAtTime(60, now + 0.25);
-                gain.gain.setValueAtTime(0.5, now);
-                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.start(now);
-                osc.stop(now + 0.25);
+            try {
+                const now = audioCtx.currentTime;
+                if (type === 'slash') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(400, now);
+                    osc.frequency.exponentialRampToValueAtTime(80, now + 0.15);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.15);
+                } else if (type === 'thrust') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(150, now);
+                    osc.frequency.linearRampToValueAtTime(300, now + 0.1);
+                    gain.gain.setValueAtTime(0.4, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.12);
+                } else if (type === 'crystal') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(800, now);
+                    osc.frequency.exponentialRampToValueAtTime(1400, now + 0.2);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.2);
+                } else if (type === 'hit') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(120, now);
+                    osc.frequency.exponentialRampToValueAtTime(30, now + 0.1);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.1);
+                } else if (type === 'damage') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(100, now);
+                    osc.frequency.linearRampToValueAtTime(40, now + 0.25);
+                    gain.gain.setValueAtTime(0.5, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.25);
+                }
+            } catch (e) {
+                console.error("Audio error", e);
             }
         }
 
-        // Speech Synthesis TTS engine: Speaks ONLY the raw score number
-        function speakScore(number) {
+        // Speech Synthesis for score numeric announcement
+        function speakScore(numericVal) {
             if ('speechSynthesis' in window) {
-                // Cancel ongoing utterances to avoid audio backlog
-                window.speechSynthesis.cancel();
-                const utterance = new SpeechSynthesisUtterance(number.toString());
-                utterance.rate = 1.3; // Responsive pacing
+                window.speechSynthesis.cancel(); // Stop prior audio queue
+                const utterance = new SpeechSynthesisUtterance(numericVal.toString());
+                utterance.rate = 1.3;
                 utterance.pitch = 1.1;
                 window.speechSynthesis.speak(utterance);
             }
         }
 
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-
-        let width = 0;
-        let height = 0;
-
-        function resizeCanvas() {
-            const container = document.getElementById('phone-container');
-            width = container.clientWidth;
-            height = container.clientHeight;
-            canvas.width = width;
-            canvas.height = height;
-        }
-
-        window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
-
-        // Game State Variables
-        let gameState = 'MENU'; // MENU, PLAYING, GAMEOVER
-        let selectedHero = 'rumi';
-        let score = 0;
-        let lives = 3;
-        let lastSpawnTime = 0;
-        let spawnInterval = 1800; // ms
-        let antSpeedMultiplier = 1.0;
-
-        // Game Entities
-        let hero = {
-            x: 60,
-            y: 0,
-            width: 50,
-            height: 70,
-            attacking: false,
-            attackTimer: 0,
-            attackDuration: 15 // frames
-        };
-
-        let ants = [];
-        let projectiles = [];
-        let particles = [];
-
-        // NYC Background Elements
-        let skylineBuildings = [];
-        function generateSkyline() {
-            skylineBuildings = [];
-            let currentX = 0;
-            while (currentX < width + 100) {
-                const bWidth = 35 + Math.random() * 45;
-                const bHeight = 120 + Math.random() * 160;
-                skylineBuildings.push({
-                    x: currentX,
-                    w: bWidth,
-                    h: bHeight,
-                    color: ['#1e1b4b', '#0f172a', '#172554', '#1e293b'][Math.floor(Math.random() * 4)],
-                    windows: Math.random() > 0.3
-                });
-                currentX += bWidth + 4;
-            }
-        }
-
-        function selectCharacter(charKey) {
-            initAudio();
-            selectedHero = charKey;
-            document.getElementById('charSelectScreen').classList.add('hidden');
-            document.getElementById('hudLayer').classList.remove('hidden');
-            document.getElementById('gameOverScreen').classList.add('hidden');
-            startGame();
-        }
-
-        function startGame() {
-            score = 0;
-            lives = 3;
-            antSpeedMultiplier = 1.0;
-            spawnInterval = 1800;
-            ants = [];
-            projectiles = [];
-            particles = [];
-            gameState = 'PLAYING';
-            updateHUD();
-            generateSkyline();
-            lastSpawnTime = performance.now();
-        }
-
-        function returnToCharSelect() {
-            gameState = 'MENU';
-            document.getElementById('gameOverScreen').classList.add('hidden');
-            document.getElementById('hudLayer').classList.add('hidden');
-            document.getElementById('charSelectScreen').classList.remove('hidden');
-        }
-
-        function restartGame() {
-            document.getElementById('gameOverScreen').classList.add('hidden');
-            startGame();
-        }
-
-        function updateHUD() {
-            document.getElementById('scoreText').innerText = score;
-            const livesContainer = document.getElementById('livesContainer');
-            livesContainer.innerHTML = '';
-            for (let i = 0; i < 3; i++) {
-                const heart = document.createElement('span');
-                heart.className = i < lives ? 'text-rose-500 text-lg' : 'text-slate-600 text-lg';
-                heart.innerHTML = '❤️';
-                livesContainer.appendChild(heart);
-            }
-        }
-
-        function handleAttack() {
-            if (gameState !== 'PLAYING') return;
-
-            initAudio();
-            hero.attacking = true;
-            hero.attackTimer = hero.attackDuration;
-
-            const streetY = height * 0.78;
-
-            if (selectedHero === 'rumi') {
-                playSfx('slash');
-                // Rumi Sword Slash: Melee Arc hitting ants in range
-                const attackRange = 140;
-                ants.forEach(ant => {
-                    if (ant.alive && ant.x - hero.x <= attackRange && ant.x > hero.x - 20) {
-                        killAnt(ant);
-                    }
-                });
-                // Slash particles
-                createParticles(hero.x + 40, streetY - 20, '#a855f7', 8);
-
-            } else if (selectedHero === 'mira') {
-                playSfx('thrust');
-                // Mira Spear Thrust: Extended straight reach
-                const attackRange = 190;
-                ants.forEach(ant => {
-                    if (ant.alive && ant.x - hero.x <= attackRange && ant.x > hero.x - 20) {
-                        killAnt(ant);
-                    }
-                });
-                // Thrust particles
-                createParticles(hero.x + 80, streetY - 15, '#ec4899', 8);
-
-            } else if (selectedHero === 'fona') {
-                playSfx('throw');
-                // Fona Katana Throw: Spawns katana flying low along ground
-                projectiles.push({
-                    x: hero.x + 30,
-                    y: streetY - 10, // Exact ant crawling level
-                    speed: 12,
-                    rotation: 0
-                });
-            }
-        }
-
-        // Tap/Click to attack
-        window.addEventListener('pointerdown', (e) => {
-            // Ignore if clicking UI buttons
-            if (e.target.tagName === 'BUTTON' || e.target.closest('.char-card')) return;
-            handleAttack();
-        });
-
-        function spawnAnt() {
-            const streetY = height * 0.78;
-            const speed = (1.2 + Math.random() * 0.8) * antSpeedMultiplier;
-            ants.push({
-                x: width + 30,
-                y: streetY,
-                size: 26,
-                speed: speed,
-                legAngle: 0,
-                alive: true
+        function selectHero(heroKey) {
+            selectedCharacter = heroKey;
+            document.querySelectorAll('.hero-btn').forEach(btn => {
+                btn.classList.remove('border-yellow-400', 'border-red-400', 'border-cyan-400', 'bg-slate-700/80');
             });
+            const activeBtn = document.getElementById(`btn-${heroKey}`);
+            if (heroKey === 'rumi') activeBtn.classList.add('border-yellow-400', 'bg-slate-700/80');
+            if (heroKey === 'mira') activeBtn.classList.add('border-red-400', 'bg-slate-700/80');
+            if (heroKey === 'fona') activeBtn.classList.add('border-cyan-400', 'bg-slate-700/80');
+
+            updateAvatarHUD();
         }
 
-        function killAnt(ant) {
-            ant.alive = false;
-            score++;
-            updateHUD();
-            speakScore(score); // Vocalize numerical score ONLY
-            playSfx('hit');
-            createParticles(ant.x, ant.y - 10, '#22c55e', 12);
+        function updateAvatarHUD() {
+            const avatarContainer = document.getElementById('hudCharAvatar');
+            const nameContainer = document.getElementById('hudCharName');
 
-            // Progressive difficulty bump
-            if (score % 5 === 0) {
-                antSpeedMultiplier += 0.15;
-                spawnInterval = Math.max(700, spawnInterval - 100);
+            if (selectedCharacter === 'rumi') {
+                nameContainer.innerText = "RUMI";
+                nameContainer.className = "text-xs font-bold text-yellow-400 tracking-wider uppercase";
+                avatarContainer.style.borderColor = "#facc15";
+                avatarContainer.innerHTML = `<svg viewBox="0 0 100 100" class="w-full h-full"><path d="M 20,20 Q 50,0 80,20 Q 80,70 50,90 Z" fill="#a855f7"/><circle cx="50" cy="40" r="15" fill="#fca5a5"/></svg>`;
+            } else if (selectedCharacter === 'mira') {
+                nameContainer.innerText = "MIRA";
+                nameContainer.className = "text-xs font-bold text-red-400 tracking-wider uppercase";
+                avatarContainer.style.borderColor = "#f87171";
+                avatarContainer.innerHTML = `<svg viewBox="0 0 100 100" class="w-full h-full"><path d="M 20,20 L 80,20 L 80,80 L 20,80 Z" fill="#dc2626"/><circle cx="50" cy="40" r="15" fill="#fca5a5"/></svg>`;
+            } else {
+                nameContainer.innerText = "FONA";
+                nameContainer.className = "text-xs font-bold text-cyan-400 tracking-wider uppercase";
+                avatarContainer.style.borderColor = "#22d3ee";
+                avatarContainer.innerHTML = `<svg viewBox="0 0 100 100" class="w-full h-full"><circle cx="50" cy="40" r="22" fill="#1e1b4b"/><circle cx="50" cy="40" r="15" fill="#fca5a5"/></svg>`;
             }
         }
 
-        function createParticles(x, y, color, count) {
-            for (let i = 0; i < count; i++) {
-                particles.push({
-                    x: x,
-                    y: y,
-                    vx: (Math.random() - 0.5) * 8,
-                    vy: (Math.random() - 0.7) * 6,
-                    radius: 2 + Math.random() * 3,
-                    color: color,
-                    life: 1.0
-                });
-            }
-        }
-
-        function drawBackground() {
-            // Night Sky Gradient
-            const skyGradient = ctx.createLinearGradient(0, 0, 0, height);
-            skyGradient.addColorStop(0, '#020617');
-            skyGradient.addColorStop(0.5, '#0f172a');
-            skyGradient.addColorStop(1, '#1e1b4b');
-            ctx.fillStyle = skyGradient;
-            ctx.fillRect(0, 0, width, height);
-
-            // NYC Skyline
-            const streetY = height * 0.75;
-            skylineBuildings.forEach(b => {
-                ctx.fillStyle = b.color;
-                ctx.fillRect(b.x, streetY - b.h, b.w, b.h);
-
-                // Lit Windows
-                if (b.windows) {
-                    ctx.fillStyle = '#fef08a';
-                    for (let wx = b.x + 6; wx < b.x + b.w - 6; wx += 10) {
-                        for (let wy = streetY - b.h + 12; wy < streetY - 20; wy += 18) {
-                            if ((wx + wy) % 3 === 0) {
-                                ctx.fillRect(wx, wy, 4, 6);
-                            }
-                        }
-                    }
-                }
-            });
-
-            // NYC Street / Sidewalk
-            const roadGradient = ctx.createLinearGradient(0, streetY, 0, height);
-            roadGradient.addColorStop(0, '#334155');
-            roadGradient.addColorStop(0.2, '#1e293b');
-            roadGradient.addColorStop(1, '#0f172a');
-            ctx.fillStyle = roadGradient;
-            ctx.fillRect(0, streetY, width, height - streetY);
-
-            // Curb line
-            ctx.fillStyle = '#64748b';
-            ctx.fillRect(0, streetY, width, 6);
-
-            // Sidewalk Pavement grid lines
-            ctx.strokeStyle = '#475569';
-            ctx.lineWidth = 1;
-            for (let x = 0; x < width; x += 60) {
-                ctx.beginPath();
-                ctx.moveTo(x, streetY + 6);
-                ctx.lineTo(x - 20, height);
-                ctx.stroke();
-            }
-
-            // NYC Traffic Sign (ONE WAY)
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(width * 0.75, streetY - 110, 36, 18);
-            ctx.strokeStyle = '#000';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(width * 0.75, streetY - 110, 36, 18);
-            ctx.fillStyle = '#000000';
-            ctx.font = 'bold 8px sans-serif';
-            ctx.fillText("ONE WAY", width * 0.75 + 2, streetY - 98);
-            ctx.fillStyle = '#64748b';
-            ctx.fillRect(width * 0.75 + 16, streetY - 92, 4, 92);
-        }
-
-        // Render Hero Character based on selection
-        function drawHero() {
-            const streetY = height * 0.78;
-            hero.y = streetY;
-
+        function drawRumi(ctx, x, y, frame, isAttacking) {
             ctx.save();
-            ctx.translate(hero.x, hero.y);
+            ctx.translate(x, y);
 
-            // Character Base Shadow
-            ctx.fillStyle = 'rgba(0,0,0,0.3)';
+            // Shadow
+            ctx.fillStyle = "rgba(0,0,0,0.3)";
             ctx.beginPath();
-            ctx.ellipse(0, 0, 20, 6, 0, 0, Math.PI * 2);
+            ctx.ellipse(0, 5, 25, 8, 0, 0, Math.PI * 2);
             ctx.fill();
 
-            if (selectedHero === 'rumi') {
-                // --- RUMI: Purple braided ponytail, Yellow jacket/top, Sword ---
-                // Body/Outfit (Yellow Jacket)
-                ctx.fillStyle = '#eab308';
-                ctx.fillRect(-12, -42, 24, 26);
-                // Purple Accent
-                ctx.fillStyle = '#a855f7';
-                ctx.fillRect(-6, -42, 12, 26);
+            // Legs / Trousers (Black)
+            ctx.fillStyle = "#1e1b4b";
+            ctx.beginPath();
+            ctx.fillRect(-12, -30, 8, 30); // Left Leg
+            ctx.fillRect(4, -30, 8, 30);  // Right Leg
 
-                // Legs
-                ctx.fillStyle = '#1e293b';
-                ctx.fillRect(-10, -16, 8, 16);
-                ctx.fillRect(2, -16, 8, 16);
+            // White Cropped Top
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(-10, -50, 20, 18);
 
-                // Head
-                ctx.fillStyle = '#fbcfe8';
+            // Silver Necklace
+            ctx.strokeStyle = "#e2e8f0";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(0, -48, 6, 0, Math.PI);
+            ctx.stroke();
+
+            // Vibrant Yellow Bomber Jacket with patterned details
+            ctx.fillStyle = "#facc15"; // Yellow
+            // Left sleeve & body
+            ctx.fillRect(-16, -52, 8, 22);
+            ctx.fillRect(-10, -52, 6, 20);
+            // Right sleeve
+            ctx.fillRect(10, -52, 8, 22);
+            // Red/Black embroidered patches details
+            ctx.fillStyle = "#dc2626";
+            ctx.fillRect(-15, -48, 5, 8);
+            ctx.fillStyle = "#000000";
+            ctx.fillRect(12, -48, 5, 8);
+
+            // Head & Face
+            ctx.fillStyle = "#fde047"; // Skin tone / highlight
+            ctx.fillStyle = "#fca5a5"; // Warm tone
+            ctx.beginPath();
+            ctx.arc(0, -62, 11, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Face details (eyes)
+            ctx.fillStyle = "#000";
+            ctx.fillRect(3, -64, 3, 2);
+
+            // Purple Voluminous Braided Hair Ponytail
+            ctx.fillStyle = "#9333ea";
+            // Hair Base
+            ctx.beginPath();
+            ctx.arc(-2, -66, 12, 0, Math.PI * 2);
+            ctx.fill();
+            // Large voluminous braided ponytail trailing back/up
+            let pTime = Math.sin(frame * 0.1) * 3;
+            ctx.fillStyle = "#a855f7";
+            ctx.beginPath();
+            ctx.arc(-16 + pTime, -72, 10, 0, Math.PI * 2);
+            ctx.arc(-26 + pTime, -68, 8, 0, Math.PI * 2);
+            ctx.arc(-34 + pTime, -60, 6, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Sword / Katana Weapon
+            ctx.save();
+            ctx.translate(6, -45);
+            if (isAttacking) {
+                // Slash motion
+                ctx.rotate(Math.PI / 4 + Math.sin(frame * 0.5) * 0.8);
+                // Slash Arc Visual
+                ctx.strokeStyle = "rgba(250, 204, 21, 0.8)";
+                ctx.lineWidth = 4;
                 ctx.beginPath();
-                ctx.arc(0, -50, 12, 0, Math.PI * 2);
-                ctx.fill();
-
-                // High Purple Braided Ponytail
-                ctx.fillStyle = '#a855f7';
-                ctx.beginPath();
-                ctx.arc(0, -58, 6, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.beginPath();
-                ctx.moveTo(-2, -58);
-                ctx.quadraticCurveTo(-22, -65, -26, -40);
-                ctx.quadraticCurveTo(-18, -35, -2, -52);
-                ctx.fill();
-
-                // Sword & Attack Slash Arc
-                if (hero.attacking) {
-                    // Animated Sword Arc
-                    ctx.strokeStyle = '#c084fc';
-                    ctx.lineWidth = 4;
-                    ctx.beginPath();
-                    ctx.arc(10, -35, 50, -Math.PI / 3, Math.PI / 3);
-                    ctx.stroke();
-
-                    // Sword Blade Extended
-                    ctx.strokeStyle = '#e2e8f0';
-                    ctx.lineWidth = 3;
-                    ctx.beginPath();
-                    ctx.moveTo(8, -35);
-                    ctx.lineTo(55, -25);
-                    ctx.stroke();
-                } else {
-                    // Idle Katana/Sword resting
-                    ctx.strokeStyle = '#cbd5e1';
-                    ctx.lineWidth = 3;
-                    ctx.beginPath();
-                    ctx.moveTo(6, -30);
-                    ctx.lineTo(26, -10);
-                    ctx.stroke();
-                }
-
-            } else if (selectedHero === 'mira') {
-                // --- MIRA: Long magenta hair in twin pigtails with blue ribbons, Lavender sweater, Spear ---
-                // Body (Lavender Sweater)
-                ctx.fillStyle = '#c084fc';
-                ctx.fillRect(-12, -42, 24, 26);
-
-                // Legs
-                ctx.fillStyle = '#0284c7';
-                ctx.fillRect(-10, -16, 8, 16);
-                ctx.fillRect(2, -16, 8, 16);
-
-                // Head
-                ctx.fillStyle = '#fed7aa';
-                ctx.beginPath();
-                ctx.arc(0, -50, 12, 0, Math.PI * 2);
-                ctx.fill();
-
-                // Magenta Twin Pigtails
-                ctx.fillStyle = '#ec4899';
-                // Left Pigtail
-                ctx.beginPath();
-                ctx.ellipse(-14, -48, 6, 18, Math.PI / 6, 0, Math.PI * 2);
-                ctx.fill();
-                // Right Pigtail
-                ctx.beginPath();
-                ctx.ellipse(-6, -56, 16, 6, Math.PI / 4, 0, Math.PI * 2);
-                ctx.fill();
-
-                // Blue Ribbons
-                ctx.fillStyle = '#38bdf8';
-                ctx.circle = function(x, y, r) { ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill(); };
-                ctx.circle(-12, -54, 4);
-
-                // Spear Attack
-                if (hero.attacking) {
-                    // Spear Thrust forward
-                    ctx.strokeStyle = '#94a3b8';
-                    ctx.lineWidth = 4;
-                    ctx.beginPath();
-                    ctx.moveTo(-5, -32);
-                    ctx.lineTo(85, -22); // Deep horizontal thrust
-                    ctx.stroke();
-                    // Spear Tip
-                    ctx.fillStyle = '#f43f5e';
-                    ctx.beginPath();
-                    ctx.moveTo(85, -26);
-                    ctx.lineTo(98, -22);
-                    ctx.lineTo(85, -18);
-                    ctx.closePath();
-                    ctx.fill();
-                } else {
-                    // Spear Idle
-                    ctx.strokeStyle = '#94a3b8';
-                    ctx.lineWidth = 3;
-                    ctx.beginPath();
-                    ctx.moveTo(-5, -30);
-                    ctx.lineTo(35, -65);
-                    ctx.stroke();
-                    // Tip
-                    ctx.fillStyle = '#f43f5e';
-                    ctx.beginPath();
-                    ctx.moveTo(35, -65);
-                    ctx.lineTo(42, -72);
-                    ctx.lineTo(38, -60);
-                    ctx.closePath();
-                    ctx.fill();
-                }
-
-            } else if (selectedHero === 'fona') {
-                // --- FONA: Short dark hair with bun, Teal crop top, Throws katanas ---
-                // Body (Teal Crop Top & Shorts)
-                ctx.fillStyle = '#14b8a6';
-                ctx.fillRect(-10, -42, 20, 14); // Crop top
-                ctx.fillStyle = '#fde047'; // Skin midriff
-                ctx.fillRect(-10, -28, 20, 6);
-                ctx.fillStyle = '#334155'; // Dark shorts
-                ctx.fillRect(-10, -22, 20, 8);
-
-                // Legs
-                ctx.fillStyle = '#fde047';
-                ctx.fillRect(-9, -14, 7, 14);
-                ctx.fillRect(2, -14, 7, 14);
-
-                // Head
-                ctx.fillStyle = '#fde047';
-                ctx.beginPath();
-                ctx.arc(0, -50, 11, 0, Math.PI * 2);
-                ctx.fill();
-
-                // Short Dark Hair & Bun
-                ctx.fillStyle = '#1e293b';
-                ctx.beginPath();
-                ctx.arc(0, -52, 12, Math.PI, Math.PI * 2);
-                ctx.fill();
-                // Bun
-                ctx.beginPath();
-                ctx.arc(6, -62, 5, 0, Math.PI * 2);
-                ctx.fill();
-
-                // Throwing Pose
-                if (hero.attacking) {
-                    ctx.strokeStyle = '#14b8a6';
-                    ctx.lineWidth = 3;
-                    ctx.beginPath();
-                    ctx.moveTo(0, -32);
-                    ctx.lineTo(25, -28);
-                    ctx.stroke();
-                }
+                ctx.arc(0, 0, 45, -Math.PI / 3, Math.PI / 3);
+                ctx.stroke();
+            } else {
+                ctx.rotate(-Math.PI / 6);
             }
+            // Katana Blade
+            ctx.fillStyle = "#cbd5e1";
+            ctx.fillRect(0, -4, 40, 4);
+            // Katana Handle
+            ctx.fillStyle = "#7e22ce";
+            ctx.fillRect(-10, -5, 10, 6);
+            // Guard
+            ctx.fillStyle = "#facc15";
+            ctx.fillRect(-1, -8, 3, 12);
+            ctx.restore();
 
             ctx.restore();
         }
 
-        function drawAnts() {
-            ants.forEach(ant => {
-                if (!ant.alive) return;
+        function drawMira(ctx, x, y, frame, isAttacking) {
+            ctx.save();
+            ctx.translate(x, y);
 
-                ctx.save();
-                ctx.translate(ant.x, ant.y - 12);
+            // Shadow
+            ctx.fillStyle = "rgba(0,0,0,0.3)";
+            ctx.beginPath();
+            ctx.ellipse(0, 5, 25, 8, 0, 0, Math.PI * 2);
+            ctx.fill();
 
-                // Ant Crawl Animation (Leg wiggle)
-                ant.legAngle += 0.25;
-                const legWiggle = Math.sin(ant.legAngle) * 5;
+            // Long Vibrant Red Hair Background (Flowing down back)
+            ctx.fillStyle = "#dc2626";
+            ctx.beginPath();
+            ctx.fillRect(-16, -70, 32, 50);
 
-                // Ant Color / Body
-                ctx.fillStyle = '#0f172a'; // Giant Dark NYC Ant
+            // Legs
+            ctx.fillStyle = "#fca5a5";
+            ctx.fillRect(-10, -25, 7, 25);
+            ctx.fillRect(3, -25, 7, 25);
 
-                // Legs
-                ctx.strokeStyle = '#1e293b';
-                ctx.lineWidth = 2;
-                for (let i = -1; i <= 1; i++) {
-                    ctx.beginPath();
-                    ctx.moveTo(i * 6, 0);
-                    ctx.lineTo(i * 8 + legWiggle, 10);
-                    ctx.stroke();
+            // Light Purple / Lavender Bear Sweater
+            ctx.fillStyle = "#c084fc";
+            ctx.fillRect(-14, -52, 28, 30);
+            // Cute Grumpy Bear Face on Sweater
+            ctx.fillStyle = "#ffffff";
+            ctx.beginPath();
+            ctx.arc(0, -38, 8, 0, Math.PI * 2);
+            ctx.fill();
+            // Grumpy Bear eyes & Pink Bow
+            ctx.fillStyle = "#000000";
+            ctx.fillRect(-4, -40, 3, 2);
+            ctx.fillRect(1, -40, 3, 2);
+            ctx.fillStyle = "#f472b6"; // Pink bow
+            ctx.beginPath();
+            ctx.arc(5, -44, 3, 0, Math.PI * 2);
+            ctx.fill();
 
-                    ctx.beginPath();
-                    ctx.moveTo(i * 6, 0);
-                    ctx.lineTo(i * 8 - legWiggle, -10);
-                    ctx.stroke();
+            // Head & Fierce Expression
+            ctx.fillStyle = "#fca5a5";
+            ctx.beginPath();
+            ctx.arc(0, -60, 10, 0, Math.PI * 2);
+            ctx.fill();
+            // Fierce angled eyebrows
+            ctx.strokeStyle = "#7f1d1d";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(-5, -64);
+            ctx.lineTo(-1, -61);
+            ctx.moveTo(5, -64);
+            ctx.lineTo(1, -61);
+            ctx.stroke();
+
+            // Red Twin Pigtails with Blue Ribbons
+            ctx.fillStyle = "#ef4444";
+            ctx.beginPath();
+            ctx.arc(-14, -68, 7, 0, Math.PI * 2);
+            ctx.arc(14, -68, 7, 0, Math.PI * 2);
+            ctx.fill();
+            // Blue ribbons
+            ctx.fillStyle = "#38bdf8";
+            ctx.fillRect(-16, -69, 5, 4);
+            ctx.fillRect(11, -69, 5, 4);
+
+            // Spear Weapon (Pokes / Thrusts horizontally)
+            ctx.save();
+            let thrustOffset = isAttacking ? Math.sin(frame * 0.6) * 35 + 20 : 0;
+            ctx.translate(thrustOffset, -40);
+            // Shaft
+            ctx.fillStyle = "#78350f";
+            ctx.fillRect(-20, -2, 70, 4);
+            // Spear Tip
+            ctx.fillStyle = "#e2e8f0";
+            ctx.beginPath();
+            ctx.moveTo(50, -6);
+            ctx.lineTo(68, 0);
+            ctx.lineTo(50, 6);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+
+            ctx.restore();
+        }
+
+        function drawFona(ctx, x, y, frame, isAttacking) {
+            ctx.save();
+            ctx.translate(x, y);
+
+            // Shadow
+            ctx.fillStyle = "rgba(0,0,0,0.3)";
+            ctx.beginPath();
+            ctx.ellipse(0, 5, 25, 8, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Legs in Gold-trimmed dark pants
+            ctx.fillStyle = "#0f172a";
+            ctx.fillRect(-11, -30, 9, 30);
+            ctx.fillRect(2, -30, 9, 30);
+            // Gold trim
+            ctx.fillStyle = "#eab308";
+            ctx.fillRect(-11, -30, 9, 3);
+            ctx.fillRect(2, -30, 9, 3);
+
+            // Teal / Cyan Leather Crop Top with Strap
+            ctx.fillStyle = "#0d9488";
+            ctx.fillRect(-11, -50, 22, 18);
+            // Strap
+            ctx.strokeStyle = "#115e59";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(-10, -50);
+            ctx.lineTo(8, -32);
+            ctx.stroke();
+
+            // Head & Skin
+            ctx.fillStyle = "#fca5a5";
+            ctx.beginPath();
+            ctx.arc(0, -60, 10, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Dark Purple/Black Hair with fringe bangs & side bun
+            ctx.fillStyle = "#1e1b4b";
+            ctx.beginPath();
+            ctx.arc(0, -64, 11, Math.PI, 0); // Top coverage / Bangs
+            ctx.fill();
+            // Side Bun
+            ctx.beginPath();
+            ctx.arc(12, -62, 6, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Glowing Crystal Blades fan handheld
+            ctx.save();
+            ctx.translate(10, -42);
+            if (isAttacking) {
+                ctx.rotate(-Math.PI / 8);
+            }
+            // Draw handheld crystal fan
+            ctx.fillStyle = "#a855f7";
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(15, -20);
+            ctx.lineTo(22, -10);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.fillStyle = "#38bdf8";
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(22, -10);
+            ctx.lineTo(20, 8);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+
+            ctx.restore();
+        }
+
+        function drawNYCBackground(ctx, width, height) {
+            // Bright Daytime Blue Sky
+            const skyGradient = ctx.createLinearGradient(0, 0, 0, height * 0.6);
+            skyGradient.addColorStop(0, '#38bdf8');
+            skyGradient.addColorStop(1, '#bae6fd');
+            ctx.fillStyle = skyGradient;
+            ctx.fillRect(0, 0, width, height);
+
+            // Empire State style skyscraper & NYC Skyline
+            ctx.fillStyle = '#94a3b8';
+            ctx.fillRect(width * 0.4, height * 0.1, width * 0.2, height * 0.5); // Main spire tower
+            ctx.fillStyle = '#64748b';
+            ctx.fillRect(width * 0.46, height * 0.02, width * 0.08, height * 0.08); // Spire tip
+            ctx.fillRect(width * 0.1, height * 0.25, width * 0.25, height * 0.35); // Left building
+            ctx.fillRect(width * 0.68, height * 0.2, width * 0.25, height * 0.4); // Right building
+
+            // Windows on distant buildings
+            ctx.fillStyle = '#fef08a';
+            for (let i = 0; i < 5; i++) {
+                for (let j = 0; j < 8; j++) {
+                    if ((i + j) % 2 === 0) {
+                        ctx.fillRect(width * 0.42 + i * 12, height * 0.15 + j * 20, 6, 10);
+                    }
                 }
+            }
 
-                // Abdomen, Thorax, Head
-                ctx.beginPath();
-                ctx.ellipse(12, 0, 10, 7, 0, 0, Math.PI * 2); // Rear
-                ctx.fill();
+            // Brick Buildings Foreground (Sides)
+            ctx.fillStyle = '#b91c1c'; // Red brick
+            ctx.fillRect(0, height * 0.4, width * 0.18, height * 0.3);
+            ctx.fillRect(width * 0.82, height * 0.4, width * 0.18, height * 0.3);
 
-                ctx.beginPath();
-                ctx.ellipse(0, 0, 6, 5, 0, 0, Math.PI * 2); // Middle
-                ctx.fill();
+            // Yellow NYC Taxi in background street
+            ctx.fillStyle = '#facc15';
+            ctx.fillRect(width * 0.65, height * 0.52, 70, 25);
+            ctx.fillStyle = '#1e293b'; // Taxi roof/windows
+            ctx.fillRect(width * 0.68, height * 0.46, 35, 12);
+            ctx.fillStyle = '#000'; // Wheels
+            ctx.beginPath();
+            ctx.arc(width * 0.68, height * 0.57, 7, 0, Math.PI * 2);
+            ctx.arc(width * 0.78, height * 0.57, 7, 0, Math.PI * 2);
+            ctx.fill();
 
-                ctx.beginPath();
-                ctx.ellipse(-8, 0, 5, 5, 0, 0, Math.PI * 2); // Head
-                ctx.fill();
+            // Asphalt Street Road & Crosswalk
+            const roadY = height * 0.58;
+            ctx.fillStyle = '#334155'; // Asphalt
+            ctx.fillRect(0, roadY, width, height - roadY);
 
-                // Red Glowing Eyes
-                ctx.fillStyle = '#ef4444';
-                ctx.beginPath();
-                ctx.arc(-10, -2, 1.5, 0, Math.PI * 2);
-                ctx.arc(-10, 2, 1.5, 0, Math.PI * 2);
-                ctx.fill();
+            // Crosswalk White Stripes
+            ctx.fillStyle = '#f8fafc';
+            for (let x = 20; x < width; x += 60) {
+                ctx.fillRect(x, roadY + 40, 35, height - roadY - 50);
+            }
+        }
 
-                // Antennae
-                ctx.strokeStyle = '#0f172a';
+        function drawAnt(ctx, ant) {
+            ctx.save();
+            ctx.translate(ant.x, ant.y);
+
+            // Ant facing left towards player
+            let legWiggle = Math.sin(ant.animFrame * 0.3) * 4;
+
+            // Legs
+            ctx.strokeStyle = "#451a03";
+            ctx.lineWidth = 2;
+            for (let i = -1; i <= 1; i++) {
                 ctx.beginPath();
-                ctx.moveTo(-10, -2);
-                ctx.lineTo(-18, -8);
-                ctx.moveTo(-10, 2);
-                ctx.lineTo(-18, 8);
+                ctx.moveTo(i * 8, 0);
+                ctx.lineTo(i * 10 - 4, 12 + (i % 2 === 0 ? legWiggle : -legWiggle));
                 ctx.stroke();
+            }
 
-                ctx.restore();
+            // Body Segments (Brown / Black giant ant)
+            ctx.fillStyle = "#27272a";
+            // Abdomen (rear)
+            ctx.beginPath();
+            ctx.ellipse(14, -4, 12, 9, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Thorax (middle)
+            ctx.fillStyle = "#3f3f46";
+            ctx.beginPath();
+            ctx.ellipse(0, -2, 7, 6, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Head (front)
+            ctx.fillStyle = "#18181b";
+            ctx.beginPath();
+            ctx.ellipse(-12, -2, 8, 7, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Glowing Red Eye
+            ctx.fillStyle = "#ef4444";
+            ctx.beginPath();
+            ctx.arc(-14, -4, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Antennae
+            ctx.strokeStyle = "#18181b";
+            ctx.beginPath();
+            ctx.moveTo(-16, -6);
+            ctx.lineTo(-24, -14 + legWiggle);
+            ctx.stroke();
+
+            ctx.restore();
+        }
+
+        function drawCrystalProjectile(ctx, proj) {
+            ctx.save();
+            ctx.translate(proj.x, proj.y);
+            ctx.rotate(proj.angle);
+
+            // Glowing low-flying crystal blade
+            ctx.fillStyle = "#38bdf8";
+            ctx.shadowColor = "#00f0ff";
+            ctx.shadowBlur = 10;
+            ctx.beginPath();
+            ctx.moveTo(15, 0);
+            ctx.lineTo(-10, -6);
+            ctx.lineTo(-5, 0);
+            ctx.lineTo(-10, 6);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.restore();
+        }
+
+        class PlayerHero {
+            constructor(characterKey) {
+                this.key = characterKey;
+                this.x = 80;
+                this.y = canvas.height * 0.72;
+                this.isAttacking = false;
+                this.attackTimer = 0;
+                this.frame = 0;
+            }
+
+            attack() {
+                this.isAttacking = true;
+                this.attackTimer = 15; // frames duration
+
+                if (this.key === 'rumi') {
+                    playSound('slash');
+                    // Melee slash hit checking
+                    checkMeleeHit(110);
+                } else if (this.key === 'mira') {
+                    playSound('thrust');
+                    // Long spear reach hit checking
+                    checkMeleeHit(160);
+                } else if (this.key === 'fona') {
+                    playSound('crystal');
+                    // Spawn low-flying crystal projectile directly aimed at ants
+                    projectiles.push({
+                        x: this.x + 20,
+                        y: this.y - 35,
+                        speed: 12,
+                        angle: 0
+                    });
+                }
+            }
+
+            update() {
+                this.frame++;
+                if (this.isAttacking) {
+                    this.attackTimer--;
+                    if (this.attackTimer <= 0) {
+                        this.isAttacking = false;
+                    }
+                }
+            }
+
+            draw(ctx) {
+                if (this.key === 'rumi') drawRumi(ctx, this.x, this.y, this.frame, this.isAttacking);
+                else if (this.key === 'mira') drawMira(ctx, this.x, this.y, this.frame, this.isAttacking);
+                else drawFona(ctx, this.x, this.y, this.frame, this.isAttacking);
+            }
+        }
+
+        function checkMeleeHit(reachRange) {
+            for (let i = ants.length - 1; i >= 0; i--) {
+                let ant = ants[i];
+                if (ant.x - player.x <= reachRange && ant.x > player.x - 20) {
+                    // Defeat Ant
+                    createParticles(ant.x, ant.y);
+                    ants.splice(i, 1);
+                    score++;
+                    updateScoreDisplay();
+                    playSound('hit');
+                    speakScore(score); // Web speech API numeric value announcement
+                }
+            }
+        }
+
+        function createParticles(x, y) {
+            for (let i = 0; i < 8; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 6,
+                    vy: (Math.random() - 0.5) * 6,
+                    life: 20,
+                    color: '#ef4444'
+                });
+            }
+        }
+
+        function spawnAnt() {
+            // Crawl right to left towards player on road
+            ants.push({
+                x: canvas.width + 30,
+                y: canvas.height * 0.72 + (Math.random() * 20 - 10),
+                speed: 2.2 + Math.random() * 1.5 + (score * 0.05),
+                animFrame: Math.floor(Math.random() * 100)
             });
         }
 
-        function updateProjectiles() {
+        function updateScoreDisplay() {
+            document.getElementById('scoreText').innerText = score;
+        }
+
+        function updateHPDisplay() {
+            const hpBar = document.getElementById('hpBar');
+            hpBar.style.width = Math.max(0, playerHp) + '%';
+        }
+
+        function gameLoop(timestamp) {
+            if (!isPlaying) return;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw Environment
+            drawNYCBackground(ctx, canvas.width, canvas.height);
+
+            // Spawn Ants
+            if (timestamp - lastAntSpawnTime > antSpawnInterval) {
+                spawnAnt();
+                lastAntSpawnTime = timestamp;
+                // Gradually increase speed/rate
+                if (antSpawnInterval > 700) antSpawnInterval -= 20;
+            }
+
+            // Update & Draw Player Hero
+            player.update();
+            player.draw(ctx);
+
+            // Update & Draw Projectiles (Fona)
             for (let i = projectiles.length - 1; i >= 0; i--) {
-                const p = projectiles[i];
+                let p = projectiles[i];
                 p.x += p.speed;
-                p.rotation += 0.3;
+                drawCrystalProjectile(ctx, p);
 
-                // Render Fona's Flying Low Katana
-                ctx.save();
-                ctx.translate(p.x, p.y - 12);
-                ctx.rotate(p.rotation);
-
-                // Silver Katana Blade
-                ctx.fillStyle = '#e2e8f0';
-                ctx.fillRect(-18, -2, 36, 4);
-                // Handle
-                ctx.fillStyle = '#0f766e';
-                ctx.fillRect(-18, -3, 8, 6);
-
-                ctx.restore();
-
-                // Collision Detection against Crawling Ants
-                for (let j = 0; j < ants.length; j++) {
-                    const ant = ants[j];
-                    if (ant.alive && Math.abs(p.x - ant.x) < 25) {
-                        killAnt(ant);
+                // Collision with ants
+                for (let j = ants.length - 1; j >= 0; j--) {
+                    let ant = ants[j];
+                    let dist = Math.hypot(p.x - ant.x, p.y - ant.y);
+                    if (dist < 25) {
+                        createParticles(ant.x, ant.y);
+                        ants.splice(j, 1);
                         projectiles.splice(i, 1);
+                        score++;
+                        updateScoreDisplay();
+                        playSound('hit');
+                        speakScore(score);
                         break;
                     }
                 }
 
-                // Remove out of bounds projectiles
-                if (p && p.x > width + 50) {
+                if (p && p.x > canvas.width + 50) {
                     projectiles.splice(i, 1);
                 }
             }
-        }
 
-        function updateParticles() {
+            // Update & Draw Ants
+            for (let i = ants.length - 1; i >= 0; i--) {
+                let ant = ants[i];
+                ant.x -= ant.speed;
+                ant.animFrame++;
+                drawAnt(ctx, ant);
+
+                // Reached Player (Damage player)
+                if (ant.x <= player.x + 15) {
+                    ants.splice(i, 1);
+                    playerHp -= 15;
+                    updateHPDisplay();
+                    playSound('damage');
+
+                    if (playerHp <= 0) {
+                        gameOver();
+                    }
+                }
+            }
+
+            // Particles
             for (let i = particles.length - 1; i >= 0; i--) {
-                const pt = particles[i];
+                let pt = particles[i];
                 pt.x += pt.vx;
                 pt.y += pt.vy;
-                pt.vy += 0.25; // Gravity
-                pt.life -= 0.04;
-
-                if (pt.life <= 0) {
-                    particles.splice(i, 1);
-                    continue;
-                }
-
+                pt.life--;
                 ctx.fillStyle = pt.color;
-                ctx.globalAlpha = pt.life;
                 ctx.beginPath();
-                ctx.arc(pt.x, pt.y, pt.radius, 0, Math.PI * 2);
+                ctx.arc(pt.x, pt.y, 3, 0, Math.PI * 2);
                 ctx.fill();
-                ctx.globalAlpha = 1.0;
-            }
-        }
 
-        function gameLoop(time) {
-            ctx.clearRect(0, 0, width, height);
-
-            drawBackground();
-
-            if (gameState === 'PLAYING') {
-                // Timer for Hero Attack Animation Reset
-                if (hero.attacking) {
-                    hero.attackTimer--;
-                    if (hero.attackTimer <= 0) {
-                        hero.attacking = false;
-                    }
-                }
-
-                // Ant Spawner
-                if (time - lastSpawnTime > spawnInterval) {
-                    spawnAnt();
-                    lastSpawnTime = time;
-                }
-
-                // Update Ant Positions and Reach Defense Check
-                for (let i = ants.length - 1; i >= 0; i--) {
-                    const ant = ants[i];
-                    if (!ant.alive) continue;
-
-                    ant.x -= ant.speed;
-
-                    // If Ant breaches the hero position
-                    if (ant.x <= hero.x + 10) {
-                        ant.alive = false;
-                        lives--;
-                        updateHUD();
-                        playSfx('hurt');
-
-                        if (lives <= 0) {
-                            triggerGameOver();
-                        }
-                    }
-                }
-
-                drawHero();
-                drawAnts();
-                updateProjectiles();
-                updateParticles();
-            } else if (gameState === 'MENU' || gameState === 'GAMEOVER') {
-                // Still render static background
-                drawHero();
+                if (pt.life <= 0) particles.splice(i, 1);
             }
 
-            requestAnimationFrame(gameLoop);
+            animationFrameId = requestAnimationFrame(gameLoop);
         }
 
-        function triggerGameOver() {
-            gameState = 'GAMEOVER';
-            document.getElementById('finalScoreText').innerText = score;
-            document.getElementById('hudLayer').classList.add('hidden');
+        function startGame() {
+            initAudio();
+            document.getElementById('selectScreen').classList.add('hidden');
+            document.getElementById('gameOverScreen').classList.add('hidden');
+            document.getElementById('gameOverScreen').classList.remove('flex');
+
+            score = 0;
+            playerHp = 100;
+            ants = [];
+            projectiles = [];
+            particles = [];
+            antSpawnInterval = 1800;
+            updateScoreDisplay();
+            updateHPDisplay();
+
+            player = new PlayerHero(selectedCharacter);
+            isPlaying = true;
+            lastAntSpawnTime = performance.now();
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+
+        function gameOver() {
+            isPlaying = false;
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            document.getElementById('finalScore').innerText = score;
             document.getElementById('gameOverScreen').classList.remove('hidden');
+            document.getElementById('gameOverScreen').classList.add('flex');
         }
 
-        // Start animation loop on window load
-        window.onload = function() {
-            requestAnimationFrame(gameLoop);
-        };
+        function restartGame() {
+            startGame();
+        }
+
+        function showCharSelect() {
+            isPlaying = false;
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            document.getElementById('gameOverScreen').classList.add('hidden');
+            document.getElementById('gameOverScreen').classList.remove('flex');
+            document.getElementById('selectScreen').classList.remove('hidden');
+        }
+
+        // Tap/Click Attack Listener
+        const gameWrapper = document.getElementById('gameWrapper');
+        gameWrapper.addEventListener('pointerdown', (e) => {
+            if (isPlaying && player) {
+                player.attack();
+            }
+        });
+
+        // Initialize display
+        selectHero('rumi');
     </script>
 </body>
 </html>
