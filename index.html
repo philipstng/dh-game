@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>NYC Ant Defenders</title>
+    <!-- Tailwind CSS for UI layout -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&display=swap');
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: #0f172a;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+            color: #ffffff;
+        }
+
+        /* Phone Screen Frame (Aspect ratio roughly 2:5.5 / modern vertical smartphone) */
+        #phone-container {
+            width: 100%;
+            max-width: 420px;
+            height: 100vh;
+            max-height: 900px;
+            position: relative;
+            background: #1e293b;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        @media (min-width: 640px) {
+            #phone-container {
+                height: 92vh;
+                border-radius: 36px;
+                border: 10px solid #334155;
+            }
+        }
+
+        /* Screen Canvas overlay positioning */
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* Custom Button Hover Effects */
+        .btn-action {
+            transition: all 0.15s ease-in-out;
+        }
+        .btn-action:active {
+            transform: scale(0.95);
+        }
+
+        /* Custom animation for neon glow */
+        .neon-text {
+            text-shadow: 0 0 10px rgba(244, 63, 94, 0.7), 0 0 20px rgba(244, 63, 94, 0.4);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Phone Wrapper -->
+    <div id="phone-container">
+
+        <!-- CANVAS GAME LAYER -->
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- UI OVERLAY: CHARACTER SELECTION SCREEN -->
+        <div id="charSelectScreen" class="absolute inset-0 bg-slate-900/95 backdrop-blur-md flex flex-col justify-between p-6 z-20">
+            <div class="text-center pt-4">
+                <h1 class="text-3xl font-black tracking-wider text-amber-400 uppercase drop-shadow-md">NYC Ant Defenders</h1>
+                <p class="text-xs text-slate-300 mt-1 uppercase tracking-widest">Select Your Hero</p>
+            </div>
+
+            <!-- Character Cards Container -->
+            <div class="space-y-3 my-auto">
+                <!-- Rumi -->
+                <div onclick="selectCharacter('rumi')" class="char-card bg-slate-800/90 border-2 border-purple-500 hover:border-purple-300 rounded-2xl p-3 flex items-center gap-4 cursor-pointer transition-all hover:scale-[1.02]">
+                    <div class="w-16 h-16 rounded-xl bg-purple-950 flex items-center justify-center border border-purple-400/30 overflow-hidden shrink-0">
+                        <!-- SVG Preview Rumi -->
+                        <svg viewBox="0 0 60 60" class="w-14 h-14">
+                            <circle cx="30" cy="32" r="14" fill="#fbcfe8"/>
+                            <path d="M 30 18 C 15 5 10 25 10 30 C 10 35 15 25 30 20" fill="#a855f7"/>
+                            <path d="M 30 20 Q 48 5 50 25" stroke="#a855f7" stroke-width="8" stroke-linecap="round" fill="none"/>
+                            <path d="M 18 42 L 42 42 L 40 58 L 20 58 Z" fill="#eab308"/>
+                            <rect x="25" y="42" width="10" height="12" fill="#a855f7"/>
+                        </svg>
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex justify-between items-center">
+                            <h2 class="text-lg font-bold text-purple-300">RUMI</h2>
+                            <span class="text-[10px] bg-purple-900/80 text-purple-200 px-2 py-0.5 rounded-full uppercase tracking-wider font-semibold">Sword Slash</span>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-0.5">High purple braided ponytail & yellow top. Fast close-range blade arc.</p>
+                    </div>
+                </div>
+
+                <!-- Mira -->
+                <div onclick="selectCharacter('mira')" class="char-card bg-slate-800/90 border-2 border-pink-500 hover:border-pink-300 rounded-2xl p-3 flex items-center gap-4 cursor-pointer transition-all hover:scale-[1.02]">
+                    <div class="w-16 h-16 rounded-xl bg-pink-950 flex items-center justify-center border border-pink-400/30 overflow-hidden shrink-0">
+                        <!-- SVG Preview Mira -->
+                        <svg viewBox="0 0 60 60" class="w-14 h-14">
+                            <circle cx="30" cy="32" r="14" fill="#fed7aa"/>
+                            <!-- Pigtails -->
+                            <path d="M 20 28 Q 2 20 8 48" stroke="#ec4899" stroke-width="7" stroke-linecap="round" fill="none"/>
+                            <path d="M 40 28 Q 58 20 52 48" stroke="#ec4899" stroke-width="7" stroke-linecap="round" fill="none"/>
+                            <!-- Blue Ribbons -->
+                            <circle cx="20" cy="28" r="3" fill="#38bdf8"/>
+                            <circle cx="40" cy="28" r="3" fill="#38bdf8"/>
+                            <path d="M 18 42 L 42 42 L 38 58 L 22 58 Z" fill="#c084fc"/>
+                        </svg>
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex justify-between items-center">
+                            <h2 class="text-lg font-bold text-pink-300">MIRA</h2>
+                            <span class="text-[10px] bg-pink-900/80 text-pink-200 px-2 py-0.5 rounded-full uppercase tracking-wider font-semibold">Spear Thrust</span>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-0.5">Magenta pigtails & ribbons. Long-reach spear thrust attack.</p>
+                    </div>
+                </div>
+
+                <!-- Fona -->
+                <div onclick="selectCharacter('fona')" class="char-card bg-slate-800/90 border-2 border-teal-500 hover:border-teal-300 rounded-2xl p-3 flex items-center gap-4 cursor-pointer transition-all hover:scale-[1.02]">
+                    <div class="w-16 h-16 rounded-xl bg-teal-950 flex items-center justify-center border border-teal-400/30 overflow-hidden shrink-0">
+                        <!-- SVG Preview Fona -->
+                        <svg viewBox="0 0 60 60" class="w-14 h-14">
+                            <circle cx="30" cy="32" r="14" fill="#fde047"/>
+                            <!-- Short Hair & Bun -->
+                            <path d="M 16 32 C 16 20 44 20 44 32 C 44 25 36 18 30 18 C 22 18 16 24 16 32 Z" fill="#334155"/>
+                            <circle cx="38" cy="18" r="5" fill="#334155"/>
+                            <path d="M 18 42 L 42 42 L 40 54 L 20 54 Z" fill="#14b8a6"/>
+                        </svg>
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex justify-between items-center">
+                            <h2 class="text-lg font-bold text-teal-300">FONA</h2>
+                            <span class="text-[10px] bg-teal-900/80 text-teal-200 px-2 py-0.5 rounded-full uppercase tracking-wider font-semibold">Katana Throw</span>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-0.5">Teal crop top & dark hair bun. Throws unlimited flying katanas at street level.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Start Instructions -->
+            <div class="text-center pb-4">
+                <p class="text-xs text-slate-400">Tap a hero to defend New York City street level!</p>
+            </div>
+        </div>
+
+        <!-- HUD LAYER (In-Game) -->
+        <div id="hudLayer" class="absolute top-0 left-0 right-0 p-4 flex justify-between items-start pointer-events-none z-10 hidden">
+            <div class="bg-slate-900/80 border border-slate-700/60 rounded-xl px-4 py-2 backdrop-blur-sm">
+                <span class="text-xs text-slate-400 block font-semibold uppercase tracking-wider">Defeated</span>
+                <span id="scoreText" class="text-3xl font-black text-amber-400 leading-none">0</span>
+            </div>
+            <div class="bg-slate-900/80 border border-slate-700/60 rounded-xl px-3 py-2 backdrop-blur-sm flex items-center gap-2">
+                <span class="text-xs text-slate-400 font-semibold uppercase">Lives:</span>
+                <div id="livesContainer" class="flex gap-1">
+                    <!-- Lives icons inserted dynamically -->
+                </div>
+            </div>
+        </div>
+
+        <!-- GAME OVER OVERLAY -->
+        <div id="gameOverScreen" class="absolute inset-0 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center p-6 z-30 hidden">
+            <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 w-full max-w-xs text-center shadow-2xl">
+                <h2 class="text-3xl font-black text-rose-500 tracking-wider mb-1 uppercase neon-text">Game Over</h2>
+                <p class="text-xs text-slate-400 mb-6">The giant NYC ants overran the sidewalk!</p>
+
+                <div class="bg-slate-800/60 border border-slate-700/50 rounded-2xl p-4 mb-6">
+                    <span class="text-xs uppercase text-slate-400 font-semibold tracking-wider">Final Ants Defeated</span>
+                    <div id="finalScoreText" class="text-5xl font-black text-amber-400 mt-1">0</div>
+                </div>
+
+                <div class="flex flex-col gap-3">
+                    <!-- Action Buttons -->
+                    <button onclick="restartGame()" class="btn-action w-full py-3.5 px-4 bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 text-slate-950 font-extrabold rounded-xl shadow-lg shadow-emerald-950/50 uppercase tracking-wider text-sm">
+                        Play Again
+                    </button>
+                    <!-- BLUE BUTTON REQUESTED BY USER -->
+                    <button onclick="returnToCharSelect()" class="btn-action w-full py-3.5 px-4 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-extrabold rounded-xl shadow-lg shadow-blue-950/50 uppercase tracking-wider text-sm transition-colors border border-blue-400/30">
+                        Change Character
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- GAME LOGIC SCRIPT -->
+    <script>
+        // Audio Synthesizer for Web Audio Sound Effects
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new AudioCtx();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        // Web Audio Sound Generators
+        function playSfx(type) {
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+
+            if (type === 'slash') {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(400, now);
+                osc.frequency.exponentialRampToValueAtTime(80, now + 0.12);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.12);
+            } else if (type === 'thrust') {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(600, now);
+                osc.frequency.exponentialRampToValueAtTime(150, now + 0.08);
+                gain.gain.setValueAtTime(0.4, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.08);
+            } else if (type === 'throw') {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(300, now);
+                osc.frequency.exponentialRampToValueAtTime(800, now + 0.15);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.15);
+            } else if (type === 'hit') {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(120, now);
+                osc.frequency.exponentialRampToValueAtTime(30, now + 0.15);
+                gain.gain.setValueAtTime(0.4, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.15);
+            } else if (type === 'hurt') {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(180, now);
+                osc.frequency.linearRampToValueAtTime(60, now + 0.25);
+                gain.gain.setValueAtTime(0.5, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.25);
+            }
+        }
+
+        // Speech Synthesis TTS engine: Speaks ONLY the raw score number
+        function speakScore(number) {
+            if ('speechSynthesis' in window) {
+                // Cancel ongoing utterances to avoid audio backlog
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(number.toString());
+                utterance.rate = 1.3; // Responsive pacing
+                utterance.pitch = 1.1;
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let width = 0;
+        let height = 0;
+
+        function resizeCanvas() {
+            const container = document.getElementById('phone-container');
+            width = container.clientWidth;
+            height = container.clientHeight;
+            canvas.width = width;
+            canvas.height = height;
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // Game State Variables
+        let gameState = 'MENU'; // MENU, PLAYING, GAMEOVER
+        let selectedHero = 'rumi';
+        let score = 0;
+        let lives = 3;
+        let lastSpawnTime = 0;
+        let spawnInterval = 1800; // ms
+        let antSpeedMultiplier = 1.0;
+
+        // Game Entities
+        let hero = {
+            x: 60,
+            y: 0,
+            width: 50,
+            height: 70,
+            attacking: false,
+            attackTimer: 0,
+            attackDuration: 15 // frames
+        };
+
+        let ants = [];
+        let projectiles = [];
+        let particles = [];
+
+        // NYC Background Elements
+        let skylineBuildings = [];
+        function generateSkyline() {
+            skylineBuildings = [];
+            let currentX = 0;
+            while (currentX < width + 100) {
+                const bWidth = 35 + Math.random() * 45;
+                const bHeight = 120 + Math.random() * 160;
+                skylineBuildings.push({
+                    x: currentX,
+                    w: bWidth,
+                    h: bHeight,
+                    color: ['#1e1b4b', '#0f172a', '#172554', '#1e293b'][Math.floor(Math.random() * 4)],
+                    windows: Math.random() > 0.3
+                });
+                currentX += bWidth + 4;
+            }
+        }
+
+        function selectCharacter(charKey) {
+            initAudio();
+            selectedHero = charKey;
+            document.getElementById('charSelectScreen').classList.add('hidden');
+            document.getElementById('hudLayer').classList.remove('hidden');
+            document.getElementById('gameOverScreen').classList.add('hidden');
+            startGame();
+        }
+
+        function startGame() {
+            score = 0;
+            lives = 3;
+            antSpeedMultiplier = 1.0;
+            spawnInterval = 1800;
+            ants = [];
+            projectiles = [];
+            particles = [];
+            gameState = 'PLAYING';
+            updateHUD();
+            generateSkyline();
+            lastSpawnTime = performance.now();
+        }
+
+        function returnToCharSelect() {
+            gameState = 'MENU';
+            document.getElementById('gameOverScreen').classList.add('hidden');
+            document.getElementById('hudLayer').classList.add('hidden');
+            document.getElementById('charSelectScreen').classList.remove('hidden');
+        }
+
+        function restartGame() {
+            document.getElementById('gameOverScreen').classList.add('hidden');
+            startGame();
+        }
+
+        function updateHUD() {
+            document.getElementById('scoreText').innerText = score;
+            const livesContainer = document.getElementById('livesContainer');
+            livesContainer.innerHTML = '';
+            for (let i = 0; i < 3; i++) {
+                const heart = document.createElement('span');
+                heart.className = i < lives ? 'text-rose-500 text-lg' : 'text-slate-600 text-lg';
+                heart.innerHTML = '❤️';
+                livesContainer.appendChild(heart);
+            }
+        }
+
+        function handleAttack() {
+            if (gameState !== 'PLAYING') return;
+
+            initAudio();
+            hero.attacking = true;
+            hero.attackTimer = hero.attackDuration;
+
+            const streetY = height * 0.78;
+
+            if (selectedHero === 'rumi') {
+                playSfx('slash');
+                // Rumi Sword Slash: Melee Arc hitting ants in range
+                const attackRange = 140;
+                ants.forEach(ant => {
+                    if (ant.alive && ant.x - hero.x <= attackRange && ant.x > hero.x - 20) {
+                        killAnt(ant);
+                    }
+                });
+                // Slash particles
+                createParticles(hero.x + 40, streetY - 20, '#a855f7', 8);
+
+            } else if (selectedHero === 'mira') {
+                playSfx('thrust');
+                // Mira Spear Thrust: Extended straight reach
+                const attackRange = 190;
+                ants.forEach(ant => {
+                    if (ant.alive && ant.x - hero.x <= attackRange && ant.x > hero.x - 20) {
+                        killAnt(ant);
+                    }
+                });
+                // Thrust particles
+                createParticles(hero.x + 80, streetY - 15, '#ec4899', 8);
+
+            } else if (selectedHero === 'fona') {
+                playSfx('throw');
+                // Fona Katana Throw: Spawns katana flying low along ground
+                projectiles.push({
+                    x: hero.x + 30,
+                    y: streetY - 10, // Exact ant crawling level
+                    speed: 12,
+                    rotation: 0
+                });
+            }
+        }
+
+        // Tap/Click to attack
+        window.addEventListener('pointerdown', (e) => {
+            // Ignore if clicking UI buttons
+            if (e.target.tagName === 'BUTTON' || e.target.closest('.char-card')) return;
+            handleAttack();
+        });
+
+        function spawnAnt() {
+            const streetY = height * 0.78;
+            const speed = (1.2 + Math.random() * 0.8) * antSpeedMultiplier;
+            ants.push({
+                x: width + 30,
+                y: streetY,
+                size: 26,
+                speed: speed,
+                legAngle: 0,
+                alive: true
+            });
+        }
+
+        function killAnt(ant) {
+            ant.alive = false;
+            score++;
+            updateHUD();
+            speakScore(score); // Vocalize numerical score ONLY
+            playSfx('hit');
+            createParticles(ant.x, ant.y - 10, '#22c55e', 12);
+
+            // Progressive difficulty bump
+            if (score % 5 === 0) {
+                antSpeedMultiplier += 0.15;
+                spawnInterval = Math.max(700, spawnInterval - 100);
+            }
+        }
+
+        function createParticles(x, y, color, count) {
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 8,
+                    vy: (Math.random() - 0.7) * 6,
+                    radius: 2 + Math.random() * 3,
+                    color: color,
+                    life: 1.0
+                });
+            }
+        }
+
+        function drawBackground() {
+            // Night Sky Gradient
+            const skyGradient = ctx.createLinearGradient(0, 0, 0, height);
+            skyGradient.addColorStop(0, '#020617');
+            skyGradient.addColorStop(0.5, '#0f172a');
+            skyGradient.addColorStop(1, '#1e1b4b');
+            ctx.fillStyle = skyGradient;
+            ctx.fillRect(0, 0, width, height);
+
+            // NYC Skyline
+            const streetY = height * 0.75;
+            skylineBuildings.forEach(b => {
+                ctx.fillStyle = b.color;
+                ctx.fillRect(b.x, streetY - b.h, b.w, b.h);
+
+                // Lit Windows
+                if (b.windows) {
+                    ctx.fillStyle = '#fef08a';
+                    for (let wx = b.x + 6; wx < b.x + b.w - 6; wx += 10) {
+                        for (let wy = streetY - b.h + 12; wy < streetY - 20; wy += 18) {
+                            if ((wx + wy) % 3 === 0) {
+                                ctx.fillRect(wx, wy, 4, 6);
+                            }
+                        }
+                    }
+                }
+            });
+
+            // NYC Street / Sidewalk
+            const roadGradient = ctx.createLinearGradient(0, streetY, 0, height);
+            roadGradient.addColorStop(0, '#334155');
+            roadGradient.addColorStop(0.2, '#1e293b');
+            roadGradient.addColorStop(1, '#0f172a');
+            ctx.fillStyle = roadGradient;
+            ctx.fillRect(0, streetY, width, height - streetY);
+
+            // Curb line
+            ctx.fillStyle = '#64748b';
+            ctx.fillRect(0, streetY, width, 6);
+
+            // Sidewalk Pavement grid lines
+            ctx.strokeStyle = '#475569';
+            ctx.lineWidth = 1;
+            for (let x = 0; x < width; x += 60) {
+                ctx.beginPath();
+                ctx.moveTo(x, streetY + 6);
+                ctx.lineTo(x - 20, height);
+                ctx.stroke();
+            }
+
+            // NYC Traffic Sign (ONE WAY)
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(width * 0.75, streetY - 110, 36, 18);
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(width * 0.75, streetY - 110, 36, 18);
+            ctx.fillStyle = '#000000';
+            ctx.font = 'bold 8px sans-serif';
+            ctx.fillText("ONE WAY", width * 0.75 + 2, streetY - 98);
+            ctx.fillStyle = '#64748b';
+            ctx.fillRect(width * 0.75 + 16, streetY - 92, 4, 92);
+        }
+
+        // Render Hero Character based on selection
+        function drawHero() {
+            const streetY = height * 0.78;
+            hero.y = streetY;
+
+            ctx.save();
+            ctx.translate(hero.x, hero.y);
+
+            // Character Base Shadow
+            ctx.fillStyle = 'rgba(0,0,0,0.3)';
+            ctx.beginPath();
+            ctx.ellipse(0, 0, 20, 6, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            if (selectedHero === 'rumi') {
+                // --- RUMI: Purple braided ponytail, Yellow jacket/top, Sword ---
+                // Body/Outfit (Yellow Jacket)
+                ctx.fillStyle = '#eab308';
+                ctx.fillRect(-12, -42, 24, 26);
+                // Purple Accent
+                ctx.fillStyle = '#a855f7';
+                ctx.fillRect(-6, -42, 12, 26);
+
+                // Legs
+                ctx.fillStyle = '#1e293b';
+                ctx.fillRect(-10, -16, 8, 16);
+                ctx.fillRect(2, -16, 8, 16);
+
+                // Head
+                ctx.fillStyle = '#fbcfe8';
+                ctx.beginPath();
+                ctx.arc(0, -50, 12, 0, Math.PI * 2);
+                ctx.fill();
+
+                // High Purple Braided Ponytail
+                ctx.fillStyle = '#a855f7';
+                ctx.beginPath();
+                ctx.arc(0, -58, 6, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.moveTo(-2, -58);
+                ctx.quadraticCurveTo(-22, -65, -26, -40);
+                ctx.quadraticCurveTo(-18, -35, -2, -52);
+                ctx.fill();
+
+                // Sword & Attack Slash Arc
+                if (hero.attacking) {
+                    // Animated Sword Arc
+                    ctx.strokeStyle = '#c084fc';
+                    ctx.lineWidth = 4;
+                    ctx.beginPath();
+                    ctx.arc(10, -35, 50, -Math.PI / 3, Math.PI / 3);
+                    ctx.stroke();
+
+                    // Sword Blade Extended
+                    ctx.strokeStyle = '#e2e8f0';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.moveTo(8, -35);
+                    ctx.lineTo(55, -25);
+                    ctx.stroke();
+                } else {
+                    // Idle Katana/Sword resting
+                    ctx.strokeStyle = '#cbd5e1';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.moveTo(6, -30);
+                    ctx.lineTo(26, -10);
+                    ctx.stroke();
+                }
+
+            } else if (selectedHero === 'mira') {
+                // --- MIRA: Long magenta hair in twin pigtails with blue ribbons, Lavender sweater, Spear ---
+                // Body (Lavender Sweater)
+                ctx.fillStyle = '#c084fc';
+                ctx.fillRect(-12, -42, 24, 26);
+
+                // Legs
+                ctx.fillStyle = '#0284c7';
+                ctx.fillRect(-10, -16, 8, 16);
+                ctx.fillRect(2, -16, 8, 16);
+
+                // Head
+                ctx.fillStyle = '#fed7aa';
+                ctx.beginPath();
+                ctx.arc(0, -50, 12, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Magenta Twin Pigtails
+                ctx.fillStyle = '#ec4899';
+                // Left Pigtail
+                ctx.beginPath();
+                ctx.ellipse(-14, -48, 6, 18, Math.PI / 6, 0, Math.PI * 2);
+                ctx.fill();
+                // Right Pigtail
+                ctx.beginPath();
+                ctx.ellipse(-6, -56, 16, 6, Math.PI / 4, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Blue Ribbons
+                ctx.fillStyle = '#38bdf8';
+                ctx.circle = function(x, y, r) { ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill(); };
+                ctx.circle(-12, -54, 4);
+
+                // Spear Attack
+                if (hero.attacking) {
+                    // Spear Thrust forward
+                    ctx.strokeStyle = '#94a3b8';
+                    ctx.lineWidth = 4;
+                    ctx.beginPath();
+                    ctx.moveTo(-5, -32);
+                    ctx.lineTo(85, -22); // Deep horizontal thrust
+                    ctx.stroke();
+                    // Spear Tip
+                    ctx.fillStyle = '#f43f5e';
+                    ctx.beginPath();
+                    ctx.moveTo(85, -26);
+                    ctx.lineTo(98, -22);
+                    ctx.lineTo(85, -18);
+                    ctx.closePath();
+                    ctx.fill();
+                } else {
+                    // Spear Idle
+                    ctx.strokeStyle = '#94a3b8';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.moveTo(-5, -30);
+                    ctx.lineTo(35, -65);
+                    ctx.stroke();
+                    // Tip
+                    ctx.fillStyle = '#f43f5e';
+                    ctx.beginPath();
+                    ctx.moveTo(35, -65);
+                    ctx.lineTo(42, -72);
+                    ctx.lineTo(38, -60);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+
+            } else if (selectedHero === 'fona') {
+                // --- FONA: Short dark hair with bun, Teal crop top, Throws katanas ---
+                // Body (Teal Crop Top & Shorts)
+                ctx.fillStyle = '#14b8a6';
+                ctx.fillRect(-10, -42, 20, 14); // Crop top
+                ctx.fillStyle = '#fde047'; // Skin midriff
+                ctx.fillRect(-10, -28, 20, 6);
+                ctx.fillStyle = '#334155'; // Dark shorts
+                ctx.fillRect(-10, -22, 20, 8);
+
+                // Legs
+                ctx.fillStyle = '#fde047';
+                ctx.fillRect(-9, -14, 7, 14);
+                ctx.fillRect(2, -14, 7, 14);
+
+                // Head
+                ctx.fillStyle = '#fde047';
+                ctx.beginPath();
+                ctx.arc(0, -50, 11, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Short Dark Hair & Bun
+                ctx.fillStyle = '#1e293b';
+                ctx.beginPath();
+                ctx.arc(0, -52, 12, Math.PI, Math.PI * 2);
+                ctx.fill();
+                // Bun
+                ctx.beginPath();
+                ctx.arc(6, -62, 5, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Throwing Pose
+                if (hero.attacking) {
+                    ctx.strokeStyle = '#14b8a6';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.moveTo(0, -32);
+                    ctx.lineTo(25, -28);
+                    ctx.stroke();
+                }
+            }
+
+            ctx.restore();
+        }
+
+        function drawAnts() {
+            ants.forEach(ant => {
+                if (!ant.alive) return;
+
+                ctx.save();
+                ctx.translate(ant.x, ant.y - 12);
+
+                // Ant Crawl Animation (Leg wiggle)
+                ant.legAngle += 0.25;
+                const legWiggle = Math.sin(ant.legAngle) * 5;
+
+                // Ant Color / Body
+                ctx.fillStyle = '#0f172a'; // Giant Dark NYC Ant
+
+                // Legs
+                ctx.strokeStyle = '#1e293b';
+                ctx.lineWidth = 2;
+                for (let i = -1; i <= 1; i++) {
+                    ctx.beginPath();
+                    ctx.moveTo(i * 6, 0);
+                    ctx.lineTo(i * 8 + legWiggle, 10);
+                    ctx.stroke();
+
+                    ctx.beginPath();
+                    ctx.moveTo(i * 6, 0);
+                    ctx.lineTo(i * 8 - legWiggle, -10);
+                    ctx.stroke();
+                }
+
+                // Abdomen, Thorax, Head
+                ctx.beginPath();
+                ctx.ellipse(12, 0, 10, 7, 0, 0, Math.PI * 2); // Rear
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.ellipse(0, 0, 6, 5, 0, 0, Math.PI * 2); // Middle
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.ellipse(-8, 0, 5, 5, 0, 0, Math.PI * 2); // Head
+                ctx.fill();
+
+                // Red Glowing Eyes
+                ctx.fillStyle = '#ef4444';
+                ctx.beginPath();
+                ctx.arc(-10, -2, 1.5, 0, Math.PI * 2);
+                ctx.arc(-10, 2, 1.5, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Antennae
+                ctx.strokeStyle = '#0f172a';
+                ctx.beginPath();
+                ctx.moveTo(-10, -2);
+                ctx.lineTo(-18, -8);
+                ctx.moveTo(-10, 2);
+                ctx.lineTo(-18, 8);
+                ctx.stroke();
+
+                ctx.restore();
+            });
+        }
+
+        function updateProjectiles() {
+            for (let i = projectiles.length - 1; i >= 0; i--) {
+                const p = projectiles[i];
+                p.x += p.speed;
+                p.rotation += 0.3;
+
+                // Render Fona's Flying Low Katana
+                ctx.save();
+                ctx.translate(p.x, p.y - 12);
+                ctx.rotate(p.rotation);
+
+                // Silver Katana Blade
+                ctx.fillStyle = '#e2e8f0';
+                ctx.fillRect(-18, -2, 36, 4);
+                // Handle
+                ctx.fillStyle = '#0f766e';
+                ctx.fillRect(-18, -3, 8, 6);
+
+                ctx.restore();
+
+                // Collision Detection against Crawling Ants
+                for (let j = 0; j < ants.length; j++) {
+                    const ant = ants[j];
+                    if (ant.alive && Math.abs(p.x - ant.x) < 25) {
+                        killAnt(ant);
+                        projectiles.splice(i, 1);
+                        break;
+                    }
+                }
+
+                // Remove out of bounds projectiles
+                if (p && p.x > width + 50) {
+                    projectiles.splice(i, 1);
+                }
+            }
+        }
+
+        function updateParticles() {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const pt = particles[i];
+                pt.x += pt.vx;
+                pt.y += pt.vy;
+                pt.vy += 0.25; // Gravity
+                pt.life -= 0.04;
+
+                if (pt.life <= 0) {
+                    particles.splice(i, 1);
+                    continue;
+                }
+
+                ctx.fillStyle = pt.color;
+                ctx.globalAlpha = pt.life;
+                ctx.beginPath();
+                ctx.arc(pt.x, pt.y, pt.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = 1.0;
+            }
+        }
+
+        function gameLoop(time) {
+            ctx.clearRect(0, 0, width, height);
+
+            drawBackground();
+
+            if (gameState === 'PLAYING') {
+                // Timer for Hero Attack Animation Reset
+                if (hero.attacking) {
+                    hero.attackTimer--;
+                    if (hero.attackTimer <= 0) {
+                        hero.attacking = false;
+                    }
+                }
+
+                // Ant Spawner
+                if (time - lastSpawnTime > spawnInterval) {
+                    spawnAnt();
+                    lastSpawnTime = time;
+                }
+
+                // Update Ant Positions and Reach Defense Check
+                for (let i = ants.length - 1; i >= 0; i--) {
+                    const ant = ants[i];
+                    if (!ant.alive) continue;
+
+                    ant.x -= ant.speed;
+
+                    // If Ant breaches the hero position
+                    if (ant.x <= hero.x + 10) {
+                        ant.alive = false;
+                        lives--;
+                        updateHUD();
+                        playSfx('hurt');
+
+                        if (lives <= 0) {
+                            triggerGameOver();
+                        }
+                    }
+                }
+
+                drawHero();
+                drawAnts();
+                updateProjectiles();
+                updateParticles();
+            } else if (gameState === 'MENU' || gameState === 'GAMEOVER') {
+                // Still render static background
+                drawHero();
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function triggerGameOver() {
+            gameState = 'GAMEOVER';
+            document.getElementById('finalScoreText').innerText = score;
+            document.getElementById('hudLayer').classList.add('hidden');
+            document.getElementById('gameOverScreen').classList.remove('hidden');
+        }
+
+        // Start animation loop on window load
+        window.onload = function() {
+            requestAnimationFrame(gameLoop);
+        };
+    </script>
+</body>
+</html>
